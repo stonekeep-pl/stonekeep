@@ -104,6 +104,51 @@ describe('classify (default rules)', () => {
     expect(plain && bool && bool.confidence < plain.confidence).toBe(true);
   });
 
+  it('uses the entity to settle names that are ambiguous on their own', () => {
+    const at = (entity: string, name: string) =>
+      classify({ names: [name], entity }, rules)?.confidence ?? 0;
+    // a person entity raises an ambiguous match, a thing lowers it, an unknown one leaves it
+    expect(at('users', 'name')).toBe(0.7);
+    expect(at('orders', 'name')).toBe(0.5);
+    expect(at('products', 'name')).toBe(0.35);
+    expect(at('user_roles', 'name')).toBe(0.35);
+    expect(at('CustomerEntity', 'city')).toBe(0.75);
+    // names that only count inside a person entity
+    expect(at('users', 'country')).toBeGreaterThanOrEqual(0.5);
+    expect(at('shipments', 'country')).toBeLessThan(0.5);
+    // a clear name does not depend on the entity
+    expect(at('products', 'email')).toBe(at('users', 'email'));
+    expect(at('products', 'pesel')).toBe(0.97);
+    // nor does a declared format
+    expect(
+      classify({ names: ['value'], format: 'email', entity: 'products' }, rules),
+    ).toMatchObject({ category: 'contact', confidence: 0.98 });
+  });
+
+  it('works the old way with a rules file that has no entityHints', () => {
+    const withoutHints = loadDefaultRules();
+    delete withoutHints.entityHints;
+    const plain = compileRuleSet(withoutHints);
+    expect(classify({ names: ['name'], entity: 'products' }, plain)?.confidence).toBe(0.5);
+    expect(classify({ names: ['name'], entity: 'users' }, plain)?.confidence).toBe(0.5);
+  });
+
+  it('keeps sensitive names that end in _status, _type or _template', () => {
+    expect(cls('blood_type')?.category).toBe('health');
+    expect(cls('marital_status')?.category).toBe('demographic');
+    expect(cls('fingerprint_template')?.category).toBe('special_category');
+    expect(cls('phone_type')).toBeUndefined();
+    expect(cls('order_status')).toBeUndefined();
+    expect(cls('email_template')).toBeUndefined();
+  });
+
+  it('folds letters that Unicode does not decompose', () => {
+    expect(normalizeName('Straße')).toBe('strasse');
+    expect(normalizeName('Łódź')).toBe('lodz');
+    expect(normalizeName('Søren')).toBe('soren');
+    expect(cls('straße')?.category).toBe('location');
+  });
+
   it('prefers the most specific (highest confidence) match', () => {
     expect(cls('email')?.confidence).toBeGreaterThan(cls('email_backup_list')?.confidence ?? 1);
   });

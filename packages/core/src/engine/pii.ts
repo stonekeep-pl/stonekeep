@@ -85,7 +85,10 @@ export function resolvePiiColumns(
   for (const table of catalog.tables.values()) {
     for (const column of table.columns) {
       if (ignored(table.name, column.name)) continue;
-      const c = classify({ names: [column.name], rawType: column.udtName }, ctx.ruleSet);
+      const c = classify(
+        { names: [column.name], rawType: column.udtName, entity: table.name },
+        ctx.ruleSet,
+      );
       if (c && c.confidence >= ctx.minConfidence) {
         add({
           table: table.name,

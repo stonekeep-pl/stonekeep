@@ -4,12 +4,27 @@ import type { CoarseType } from './types.js';
  * Normalize an identifier to lowercase snake_case so a single rule pattern
  * covers `phoneNumber`, `PhoneNumber`, `phone_number`, `PHONE-NUMBER`, ...
  * Diacritics are folded to ASCII (`imię` -> `imie`, `születési_dátum` ->
- * `szuletesi_datum`, `łódź` -> `lodz`) so Central European names match.
+ * `szuletesi_datum`, `łódź` -> `lodz`, `straße` -> `strasse`) so European names match.
  */
+const UNDECOMPOSED: Record<string, string> = {
+  ł: 'l',
+  Ł: 'L',
+  ß: 'ss',
+  ø: 'o',
+  Ø: 'O',
+  đ: 'd',
+  Đ: 'D',
+  æ: 'ae',
+  Æ: 'Ae',
+  œ: 'oe',
+  Œ: 'Oe',
+};
+
 export function normalizeName(name: string): string {
   return (
     name
-      .replace(/[łŁ]/g, (c) => (c === 'ł' ? 'l' : 'L'))
+      // letters that Unicode does not decompose into a base letter and a mark
+      .replace(/[łŁßøØđĐæÆœŒ]/g, (c) => UNDECOMPOSED[c] ?? c)
       .normalize('NFD')
       .replace(/[̀-ͯ]/g, '')
       .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
