@@ -1,8 +1,37 @@
 # Changelog
 
-## Unreleased
+## 0.9.0
 
-Fixes for the four open CodeQL alerts.
+### Detection
+
+Measured on a labelled corpus of 327 field names (`packages/core/test/detection-corpus.json`): the
+0.8.0 rules got 142 of them wrong, these rules get all of them right. The corpus includes the
+languages added below, so part of that gap is new coverage.
+
+- **The table name settles ambiguous fields.** `users.name`, `customers.city` and `patients.weight`
+  are reported; `products.name`, `warehouses.city` and `products.weight` no longer are. New
+  `entityHints` section in the rules file, see `packages/docs/rules.md`.
+- **Sensitive names ending in `_status`, `_type` or `_template` are no longer ignored**:
+  `blood_type`, `marital_status`, `vaccination_status`, `fingerprint_template`.
+- **Names with a prefix or without separators**: `billing_first_name`, `customer_first_name`,
+  `FIRSTNAME`, `EMAILADDRESS`, `DATEOFBIRTH`, `STREETADDRESS`, `phone1`, `address1`.
+- **New kinds of fields**: card last four digits and expiry, house and apartment numbers,
+  city/state/country next to an address, last known location, device identifiers (IMEI, push
+  tokens, visitor ids), social network accounts, profile photos, vehicle registration, employment
+  and immigration status, criminal records, vaccination and pregnancy, security questions and
+  backup codes, generic document numbers inside person tables.
+- **Languages**: German, French, Spanish and Italian names, more Polish ones (`miasto`, `nr_domu`,
+  `stan_cywilny`, `wyznanie`, `diagnoza`, `grupa_krwi`, `karta_pobytu`, `numer_karty`), and
+  letters such as `ß` and `ø` are folded (`straße` matches `strasse`).
+- **Fewer false alarms**: `cell` (a spreadsheet cell), `race_condition`, `pin_position`,
+  `bind_address`, `host_address`.
+
+After upgrading, run `stonekeep scan` and review the diff of the data map: fields that are newly
+found fail `check` until they are mapped, and fields that are no longer reported show up as stale.
+
+### Hardening
+
+Fixes for four CodeQL alerts.
 
 - `normalizeName` and `coarseType` run in linear time. Two regular expressions backtracked
   quadratically on a long run of capitals, underscores or spaces.

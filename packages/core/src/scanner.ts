@@ -173,7 +173,10 @@ export function classifyFields(
 
     const leaf = f.field.split('.').pop()?.replace(/\[\]$/, '') ?? f.field;
     const names = f.columnName !== undefined ? [leaf, f.columnName] : [leaf];
-    const auto = classify({ names, rawType: f.rawType, format: f.format }, config.ruleSet);
+    const auto = classify(
+      { names, rawType: f.rawType, format: f.format, entity: f.entity },
+      config.ruleSet,
+    );
     const classification =
       override?.category !== undefined
         ? { category: override.category, rule: 'override', confidence: 1 }

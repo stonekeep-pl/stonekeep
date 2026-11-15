@@ -34,7 +34,7 @@
       "field": "display_name",
       "category": "identity",
       "rule": "person-name",
-      "confidence": 0.9,
+      "confidence": 0.8,
       "source": "sql",
       "location": {
         "file": "migrations/002_contact_details.sql",

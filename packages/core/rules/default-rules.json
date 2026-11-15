@@ -1,12 +1,28 @@
 {
   "version": 1,
-  "description": "Default Stonekeep PII classification rules. Patterns are regular expressions matched against the NORMALIZED field name (snake_case, lowercase: `phoneNumber` -> `phone_number`). Classification is heuristic and is a starting point for a human review, not a legal determination.",
+  "description": "Default Stonekeep PII classification rules. Patterns are regular expressions matched against the NORMALIZED field name (snake_case, lowercase, diacritics folded: `phoneNumber` -> `phone_number`, `imię` -> `imie`, `straße` -> `strasse`). Classification is heuristic and is a starting point for a human review, not a legal determination.",
   "ignore": [
     "^(is|has|should|can|allow|enable|disable|show|hide)_",
-    "_(verified|confirmed|validated|enabled|disabled|opt_in|opted_in|optin|consent|count|template|type|format|status|provider|visibility|public|private|sent|sent_at|verified_at|confirmed_at|updated_at|changed_at|reset_at|expires_at)$"
+    "(?<!(^|_)(blood|marital|hiv|vaccination|immigration|employment|disability|residency|citizenship|health|medical|pregnancy|criminal|civil|relationship|military|veteran|visa|covid|smoking))_(type|status)$",
+    "(?<!(^|_)(biometric|face|facial|fingerprint|iris|voice))_template$",
+    "_(verified|confirmed|validated|enabled|disabled|opt_in|opted_in|optin|consent|count|format|provider|visibility|public|private|sent|sent_at|verified_at|confirmed_at|updated_at|changed_at|reset_at|expires_at|algorithm|version|length|limit|regex|pattern|label|placeholder|required|mask)$"
   ],
   "typeAdjustments": {
     "boolean": -0.5
+  },
+  "entityHints": {
+    "person": [
+      "(^|_)(users?|customers?|clients?|persons?|people|members?|employees?|staff|patients?|contacts?|leads?|subscribers?|accounts?|profiles?|students?|candidates?|applicants?|guests?|passengers?|drivers?|authors?|owners?|visitors?|attendees?|participants?|recipients?|buyers?|sellers?|borrowers?|beneficiar(y|ies)|teachers?|doctors?|nurses?|admins?|residents?|citizens?|voters?|donors?|volunteers?|players?|travell?ers?|signups?)(_(data|info|details|archive|backup|history|records?|entity|model|dto|table|v?[0-9]+|old|new|tmp))?$",
+      "(^|_)(klient|klienci|klientow|uzytkownik|uzytkownicy|uzytkownikow|pracownik|pracownicy|pracownikow|pacjent|pacjenci|pacjentow|osoba|osoby|osob|kontakt|kontakty|uczen|uczniowie|kursant|kursanci|czlonek|czlonkowie|najemca|najemcy|kandydat|kandydaci|lekarz|lekarze)$",
+      "(^|_)(kunde|kunden|benutzer|nutzer|mitarbeiter|patient|patienten|person|personen|cliente|clientes|usuario|usuarios|empleado|empleados|paciente|pacientes|persona|personas|utilisateur|utilisateurs|employe|employes|clienti|utente|utenti|dipendente|dipendenti|paziente|pazienti)$"
+    ],
+    "nonPerson": [
+      "(^|_)(products?|items?|categor(y|ies)|tags?|roles?|permissions?|countr(y|ies)|currenc(y|ies)|plans?|settings?|configs?|configurations?|migrations?|features?|templates?|brands?|languages?|locales?|skus?|variants?|coupons?|warehouses?|menus?|pages?|queues?|metrics?|servers?|services?|statuses|types?|units?|attributes?|options?|labels?|colou?rs?|sizes?|materials?|compan(y|ies)|organi[sz]ations?|teams?|projects?|workspaces?|departments?|groups?|stores?|shops?|branches|cit(y|ies)|regions?|states?|provinces?|files?|images?|tables?|columns?|databases?|hosts?|events?)$",
+      "(^|_)(produkt|produkty|produktow|kategoria|kategorie|towar|towary|magazyn|magazyny|firma|firmy|ustawienia|produkte|kategorien|producto|productos|produit|produits|prodotto|prodotti)$"
+    ],
+    "personBoost": 0.2,
+    "nonPersonPenalty": 0.15,
+    "ambiguousBelow": 0.7
   },
   "rules": [
     {
@@ -15,12 +31,16 @@
       "description": "Email addresses.",
       "match": [
         {
-          "pattern": "^(.*_)?e_?mail(_address|_addr)?$",
+          "pattern": "^(.*_)?e_?mail(_?(address|addr|id))?(_?[0-9])?$",
           "confidence": 0.95
         },
         {
           "pattern": "(^|_)e_?mail(_|$)",
           "confidence": 0.8
+        },
+        {
+          "pattern": "^mail$",
+          "confidence": 0.6
         }
       ],
       "formats": ["email", "idn-email"]
@@ -31,8 +51,16 @@
       "description": "Phone, mobile and fax numbers.",
       "match": [
         {
-          "pattern": "(^|_)(phone|mobile|cell|cellphone|telephone|tel|msisdn|fax|whatsapp)(_?(number|no|num|nr))?$",
+          "pattern": "(^|_)(phone|mobile|cellphone|telephone|tel|msisdn|fax|whatsapp|landline)(_?(number|no|num|nr))?(_?[0-9])?$",
           "confidence": 0.92
+        },
+        {
+          "pattern": "(^|_)cell_?(phone|number|no|num|nr)(_?[0-9])?$",
+          "confidence": 0.92
+        },
+        {
+          "pattern": "(^|_)(contact|emergency|home|work|office|daytime|evening)_(number|no)$",
+          "confidence": 0.8
         },
         {
           "pattern": "(^|_)(phone|mobile)(_|$)",
@@ -47,12 +75,28 @@
       "description": "Personal names.",
       "match": [
         {
-          "pattern": "^(first|last|middle|full|given|family|maiden|legal|preferred|display|nick|sur|fore)_?name$",
+          "pattern": "(^|_)(first|last|middle|full|given|family|maiden|nick|sur|fore|birth|second)_?names?$",
           "confidence": 0.9
         },
         {
-          "pattern": "^(customer|user|person|contact|account_holder|card_holder|cardholder|holder|owner|patient|employee|member|recipient|sender|billing|shipping|emergency_contact)_name$",
+          "pattern": "(^|_)(fname|lname|mname|name_first|name_last|name_middle|name_family|name_given)$",
+          "confidence": 0.85
+        },
+        {
+          "pattern": "(^|_)(customer|user|person|contact|account_holder|card_?holder|holder|owner|patient|employee|member|recipient|sender|billing|shipping|emergency_contact|guest|passenger|author|buyer|payer|payee|student|driver|applicant|candidate|beneficiary|signer|signatory|parent|mother|father|spouse|child|visitor|subscriber|lead|attendee|participant|addressee|consignee|borrower|insured|policy_?holder|next_of_kin)_name$",
           "confidence": 0.8
+        },
+        {
+          "pattern": "^(card_?holder|account_holder|policy_?holder)$",
+          "confidence": 0.8
+        },
+        {
+          "pattern": "(^|_)(middle_initial|initials)$",
+          "confidence": 0.7
+        },
+        {
+          "pattern": "^(display|legal|preferred|client|account|profile)_?name$",
+          "confidence": 0.6
         },
         {
           "pattern": "^name$",
@@ -66,7 +110,44 @@
       "description": "Account handles that often identify a person.",
       "match": [
         {
-          "pattern": "^(user_?name|login|login_name|screen_name|handle)$",
+          "pattern": "^(user_?name|login|login_name|screen_name|handle|nick)$",
+          "confidence": 0.7
+        }
+      ]
+    },
+    {
+      "id": "social-handle",
+      "category": "identity",
+      "description": "Social network accounts and profile links.",
+      "match": [
+        {
+          "pattern": "(^|_)(twitter|facebook|instagram|linkedin|github|gitlab|telegram|skype|discord|tiktok|youtube|snapchat|wechat|slack|mastodon)_(handle|username|user|id|url|profile|account|link)$",
+          "confidence": 0.7
+        },
+        {
+          "pattern": "^(twitter|facebook|instagram|linkedin|telegram|skype|discord|tiktok|snapchat)$",
+          "confidence": 0.6
+        }
+      ]
+    },
+    {
+      "id": "photo",
+      "category": "identity",
+      "description": "Pictures of a person.",
+      "match": [
+        {
+          "pattern": "(^|_)(avatar|profile_(photo|picture|image|pic)|selfie|headshot|portrait|id_photo|passport_photo|zdjecie_profilowe)(_(url|path|key|file|id))?$",
+          "confidence": 0.6
+        }
+      ]
+    },
+    {
+      "id": "vehicle",
+      "category": "identity",
+      "description": "Vehicle registration, which leads to its keeper.",
+      "match": [
+        {
+          "pattern": "(^|_)(licen[cs]e_plate|plate_number|number_plate|registration_plate|vehicle_registration|vin|nr_rejestracyjny|numer_rejestracyjny|tablica_rejestracyjna|kennzeichen|matricula)$",
           "confidence": 0.7
         }
       ]
@@ -83,6 +164,26 @@
         {
           "pattern": "(^|_)(ssn|social_security(_number|_no)?|social_insurance(_number)?|sin_number|nino|national_id(_number)?|national_insurance(_number)?|tax_id|taxpayer_id|tin|itin|vat_number|vat_id|aadhaar|pesel|cpf|nif|bsn|personnummer|personal_id(_number|_code)?|id_card(_number)?|identity_(number|card|document)|drivers?_licen[cs]e(_number|_no)?|driving_licen[cs]e(_number)?|licen[cs]e_number)($|_)",
           "confidence": 0.95
+        },
+        {
+          "pattern": "(^|_)(socialsecuritynumber|nationalid|taxid|driverslicen[cs]e|drivinglicen[cs]e)$",
+          "confidence": 0.95
+        },
+        {
+          "pattern": "(^|_)(nhs_number|medicare_number|nric|curp|residence_permit(_number)?|visa_number|green_card(_number)?|alien_(number|registration_number)|voter_id|national_number|citizen_id)($|_)",
+          "confidence": 0.9
+        },
+        {
+          "pattern": "^(dni|nir|curp|snils)$",
+          "confidence": 0.85
+        },
+        {
+          "pattern": "(^|_)(id_number|identification_number|id_document(_number)?)$",
+          "confidence": 0.6
+        },
+        {
+          "pattern": "(^|_)(document_number|doc_number)$",
+          "confidence": 0.45
         }
       ]
     },
@@ -96,7 +197,19 @@
           "confidence": 0.93
         },
         {
-          "pattern": "(^|_)(salary|income|net_worth|credit_score)($|_)",
+          "pattern": "(^|_)(cardnumber|accountnumber|creditcard|bankaccount)$",
+          "confidence": 0.93
+        },
+        {
+          "pattern": "(^|_)(card_)?(last_?4|last_four|lastfour)(_digits)?$",
+          "confidence": 0.8
+        },
+        {
+          "pattern": "(^|_)(card|cc)_(exp|expiry|expiration)(_(month|year|date))?$",
+          "confidence": 0.8
+        },
+        {
+          "pattern": "(^|_)(salary|wage|income|net_worth|credit_score|earnings|compensation)($|_)",
           "confidence": 0.8
         }
       ]
@@ -107,24 +220,40 @@
       "description": "Postal addresses, postcodes and precise geolocation.",
       "match": [
         {
-          "pattern": "(^|_)(street(_address)?|address(_line)?(_?[0-9])?|home_address|billing_address|shipping_address|mailing_address|postal_address|residential_address)$",
+          "pattern": "(^|_)(street(_?address)?(_?[0-9])?|street_(name|number|no)|address(_?line)?(_?[0-9])?|addr(_?[0-9])?|home_?address|billing_?address|shipping_?address|mailing_?address|postal_?address|residential_?address|delivery_?address)$",
           "confidence": 0.85
         },
         {
-          "pattern": "(^|_)(postal_code|post_code|postcode|zip(_code)?|zipcode)$",
+          "pattern": "(^|_)(postal_?code|post_?code|zip(_?code)?|postal)$",
           "confidence": 0.8
+        },
+        {
+          "pattern": "(^|_)(house|building|apartment|apt|flat|unit|suite|door)_(number|no|nr|num)$",
+          "confidence": 0.75
         },
         {
           "pattern": "(^|_)(lat|latitude|lng|lon|longitude|geo_?location|geo_?point|coordinates|gps(_location)?)$",
           "confidence": 0.75
         },
         {
+          "pattern": "(^|_)(last_known|current|home|work|user|device|live)_(location|position|coordinates)$",
+          "confidence": 0.75
+        },
+        {
+          "pattern": "(^|_)(billing|shipping|delivery|home|mailing|residence|customer|user|address)_(city|town|state|province|region|county|country|district)$",
+          "confidence": 0.7
+        },
+        {
           "pattern": "^(city|town)$",
           "confidence": 0.55
+        },
+        {
+          "pattern": "^(country|country_code|state|province|region|county|district|location)$",
+          "confidence": 0.4
         }
       ],
       "exclude": [
-        "(^|_)(e_?mail|ip|mac|wallet|web|url|server|remote|contract|bitcoin|eth|crypto)_address(_|$)"
+        "(^|_)(e_?mail|ip|mac|wallet|web|url|server|remote|contract|bitcoin|eth|crypto|host|bind|listen|proxy|gateway|dns|smtp|base|endpoint|node|peer|memory|bus)_addr(ess)?(_|$)"
       ]
     },
     {
@@ -133,7 +262,7 @@
       "description": "IP addresses, device and advertising identifiers.",
       "match": [
         {
-          "pattern": "(^|_)(ip|ip_address|ipv4|ipv6|ip_addr|remote_addr|client_ip|last_ip|mac_address|device_id|device_token|push_token|advertising_id|idfa|gaid|user_agent|cookie_id|browser_fingerprint|fingerprint)($|_)",
+          "pattern": "(^|_)(ip|ip_?address|ipv4|ipv6|ip_addr|remote_addr|client_ip|last_ip|mac_?address|device_id|device_token|push_token|fcm_token|apns_token|registration_token|advertising_id|ad_id|idfa|idfv|gaid|android_id|imei|imsi|user_agent|cookie_id|browser_fingerprint|device_fingerprint|fingerprint|visitor_id|anonymous_id|ga_client_id|tracking_id|adres_ip|ip_adresse|adresse_ip|direccion_ip|indirizzo_ip)($|_)",
           "confidence": 0.8
         }
       ],
@@ -146,11 +275,19 @@
       "description": "Dates of birth and age.",
       "match": [
         {
-          "pattern": "(^|_)(date_of_birth|dob|birth_?date|birth_?day|birth_year|born_on|born_at)($|_)",
+          "pattern": "(^|_)(date_of_birth|dateofbirth|dob|birth_?date|birth_?day|birth_year|birth_month|year_of_birth|month_of_birth|day_of_birth|yob|born_on|born_at)($|_)",
           "confidence": 0.95
         },
         {
-          "pattern": "^age$",
+          "pattern": "(^|_)(user|customer|patient|person|member|client|employee|child)_age$",
+          "confidence": 0.7
+        },
+        {
+          "pattern": "^(age|wiek)$",
+          "confidence": 0.6
+        },
+        {
+          "pattern": "(^|_)age_(group|range|bracket)$",
           "confidence": 0.6
         }
       ]
@@ -161,19 +298,31 @@
       "description": "Gender, nationality and similar demographic attributes.",
       "match": [
         {
-          "pattern": "(^|_)(gender|sex|nationality|citizenship|marital_status|place_of_birth|birth_place|mother_tongue|native_language)($|_)",
+          "pattern": "(^|_)(gender|sex|nationality|citizenship|marital_status|civil_status|relationship_status|employment_status|immigration_status|residency_status|military_status|veteran_status|place_of_birth|birth_place|country_of_birth|birth_country|mother_tongue|native_language|pronouns?)($|_)",
           "confidence": 0.8
+        },
+        {
+          "pattern": "(^|_)(job_title|occupation|profession|employer|education_level|zawod|wyksztalcenie|stanowisko|beruf)$",
+          "confidence": 0.6
         }
       ]
     },
     {
       "id": "special-category",
       "category": "special_category",
-      "description": "Data that many regimes treat as especially sensitive (e.g. GDPR Art. 9).",
+      "description": "Data that many regimes treat as especially sensitive (e.g. GDPR Art. 9), and data on criminal convictions (Art. 10).",
       "match": [
         {
-          "pattern": "(^|_)(ethnicity|ethnic_origin|race|religion|religious_belief|political_(opinion|affiliation|party)|sexual_orientation|trade_union(_membership)?|union_member(ship)?)($|_)",
+          "pattern": "(^|_)(ethnicity|ethnic_origin|ethnic_group|religion|religious_belief|political_(opinion|affiliation|party|views)|sexual_orientation|sexual_preference|gender_identity|trade_union(_membership)?|union_member(ship)?)($|_)",
           "confidence": 0.9
+        },
+        {
+          "pattern": "(^|_)race$",
+          "confidence": 0.85
+        },
+        {
+          "pattern": "(^|_)(criminal_(record|history|conviction)s?|convictions?|arrest_records?)($|_)",
+          "confidence": 0.85
         }
       ]
     },
@@ -194,8 +343,16 @@
       "description": "Health and medical data.",
       "match": [
         {
-          "pattern": "(^|_)(diagnosis|diagnoses|medical(_history|_record|_condition|_notes)?|health_(record|condition|data|insurance(_number|_id)?)|allerg(y|ies)|medications?|prescriptions?|blood_type|disabilit(y|ies)|symptoms?|icd_?10)($|_)",
+          "pattern": "(^|_)(diagnosis|diagnoses|medical(_history|_record|_condition|_notes)?|health_(record|condition|data|status|insurance(_number|_id)?)|allerg(y|ies)|medications?|prescriptions?|blood_type|disabilit(y|ies)|disability_status|symptoms?|icd_?10)($|_)",
           "confidence": 0.85
+        },
+        {
+          "pattern": "(^|_)(vaccination(_status|_record)?|vaccines?|immuni[sz]ations?|hiv(_status)?|pregnan(t|cy)(_status)?|mental_health|blood_pressure|heart_rate|bmi|chronic_(condition|disease)s?|treatment_plan|smoking_status|clinical_notes|patient_notes)($|_)",
+          "confidence": 0.85
+        },
+        {
+          "pattern": "^(weight|height|weight_kg|height_cm|waga|wzrost)$",
+          "confidence": 0.4
         }
       ]
     },
@@ -205,7 +362,11 @@
       "description": "Passwords, secrets and authentication factors tied to a person.",
       "match": [
         {
-          "pattern": "(^|_)(password|passwd|pwd|password_hash|hashed_password|passcode|pin|pin_code|security_answer|secret_answer|otp_secret|mfa_secret|totp_secret|recovery_codes?)($|_)",
+          "pattern": "(^|_)(password|passwd|pwd|password_hash|hashed_password|passcode|passphrase|security_(answer|question)|secret_(answer|question)|otp_secret|mfa_secret|totp_secret|two_factor_secret|recovery_codes?|backup_codes?)($|_)",
+          "confidence": 0.85
+        },
+        {
+          "pattern": "(^|_)pin(_code|_hash|_number)?$",
           "confidence": 0.85
         },
         {
@@ -236,7 +397,7 @@
           "confidence": 0.95
         },
         {
-          "pattern": "(^|_)(dowod(_osobisty)?|(nr|numer|seria)_dowodu|numer_paszportu|nr_paszportu|paszport)($|_)",
+          "pattern": "(^|_)(dowod(_osobisty)?|(nr|numer|seria)_dowodu|numer_paszportu|nr_paszportu|paszport|karta_pobytu|(nr|numer)_karty_pobytu)($|_)",
           "confidence": 0.95
         },
         {
@@ -254,6 +415,10 @@
         {
           "pattern": "^(regon|cui|cif|adoszam)$",
           "confidence": 0.7
+        },
+        {
+          "pattern": "(^|_)(nr|numer)_dokumentu(_tozsamosci)?$",
+          "confidence": 0.45
         }
       ]
     },
@@ -321,8 +486,16 @@
           "confidence": 0.85
         },
         {
-          "pattern": "^(miejscowosc|localitate|telepules|obec)$",
+          "pattern": "(^|_)(nr|numer)_(domu|lokalu|mieszkania|budynku)$",
+          "confidence": 0.75
+        },
+        {
+          "pattern": "^(miejscowosc|miasto|localitate|telepules|obec)$",
           "confidence": 0.55
+        },
+        {
+          "pattern": "^(wojewodztwo|powiat|gmina|kraj)$",
+          "confidence": 0.4
         }
       ],
       "exclude": ["(^|_)(adres|adresa)_(ip|url|www|e_?mail|mac|serwera|server)($|_)"]
@@ -333,12 +506,34 @@
       "description": "Date of birth, sex and citizenship in Polish, Romanian, Hungarian and Czech.",
       "match": [
         {
-          "pattern": "(^|_)(data_urodzenia|miejsce_urodzenia|data_nasterii|locul_nasterii|szuletesi_(datum|ido|hely)|datum_narozeni)($|_)",
+          "pattern": "(^|_)(data_urodzenia|rok_urodzenia|miejsce_urodzenia|data_nasterii|locul_nasterii|szuletesi_(datum|ido|hely)|datum_narozeni)($|_)",
           "confidence": 0.95
         },
         {
-          "pattern": "(^|_)(plec|obywatelstwo|cetatenie|allampolgarsag|narodowosc|nationalitate)($|_)",
+          "pattern": "(^|_)(plec|obywatelstwo|stan_cywilny|cetatenie|allampolgarsag|narodowosc|nationalitate)($|_)",
           "confidence": 0.8
+        }
+      ]
+    },
+    {
+      "id": "cee-special-category",
+      "category": "special_category",
+      "description": "Special categories and criminal records named in Polish.",
+      "match": [
+        {
+          "pattern": "(^|_)(wyznanie|religia|poglady_polityczne|orientacja_seksualna|pochodzenie_(etniczne|rasowe)|przynaleznosc_zwiazkowa|zwiazek_zawodowy|karalnosc|niekaralnosc|skazanie|dane_biometryczne|odcisk_palca)($|_)",
+          "confidence": 0.9
+        }
+      ]
+    },
+    {
+      "id": "cee-health",
+      "category": "health",
+      "description": "Health data named in Polish.",
+      "match": [
+        {
+          "pattern": "(^|_)(diagnoza|rozpoznanie|choroba|choroby|historia_choroby|historia_leczenia|leki|alergia|alergie|grupa_krwi|stan_zdrowia|niepelnosprawnosc|stopien_niepelnosprawnosci|recepta|recepty|szczepienie|szczepienia|ciaza|skierowanie|wynik_badania|wyniki_badan)($|_)",
+          "confidence": 0.85
         }
       ]
     },
@@ -348,7 +543,7 @@
       "description": "Bank account fields in Polish, Romanian and Hungarian.",
       "match": [
         {
-          "pattern": "(^|_)(numer_konta|nr_konta|nr_rachunku|numer_rachunku|rachunek_bankowy|konto_bankowe|cont_bancar|numar_cont|bankszamlaszam|szamlaszam)($|_)",
+          "pattern": "(^|_)(numer_konta|nr_konta|nr_rachunku|numer_rachunku|rachunek_bankowy|konto_bankowe|numer_karty|nr_karty|cont_bancar|numar_cont|bankszamlaszam|szamlaszam)($|_)",
           "confidence": 0.93
         },
         {
@@ -364,6 +559,123 @@
       "match": [
         {
           "pattern": "(^|_)(haslo|haslo_hash|hash_hasla|parola|parola_hash|jelszo|jelszo_hash|kod_pin|pin_kod)($|_)",
+          "confidence": 0.85
+        }
+      ]
+    },
+    {
+      "id": "eu-person-name",
+      "category": "identity",
+      "description": "Personal names in German, French, Spanish and Italian.",
+      "match": [
+        {
+          "pattern": "(^|_)(vorname|nachname|familienname|geburtsname|zuname|rufname)($|_)",
+          "confidence": 0.92
+        },
+        {
+          "pattern": "(^|_)(prenom|nom_de_famille|nom_famille|nom_complet|nom_naissance)($|_)",
+          "confidence": 0.92
+        },
+        {
+          "pattern": "(^|_)(apellidos?|primer_apellido|segundo_apellido|nombre_completo|nombre_y_apellidos?)($|_)",
+          "confidence": 0.92
+        },
+        {
+          "pattern": "(^|_)(cognome|nome_completo|nome_e_cognome)($|_)",
+          "confidence": 0.92
+        },
+        {
+          "pattern": "^(nom|nombre|nome)$",
+          "confidence": 0.5
+        }
+      ]
+    },
+    {
+      "id": "eu-contact",
+      "category": "contact",
+      "description": "Phone and email fields in German, French, Spanish and Italian.",
+      "match": [
+        {
+          "pattern": "(^|_)(telefonnummer|handynummer|mobilnummer|rufnummer|handy|telefono|movil|celular|cellulare|numero_(de_)?telefono|numero_(de_)?telephone)($|_)",
+          "confidence": 0.9
+        },
+        {
+          "pattern": "(^|_)(courriel|correo(_electronico)?|adresse_e_?mail|e_?mail_adresse|posta_elettronica|indirizzo_e_?mail)($|_)",
+          "confidence": 0.9
+        }
+      ]
+    },
+    {
+      "id": "eu-address",
+      "category": "location",
+      "description": "Postal address fields in German, French, Spanish and Italian.",
+      "match": [
+        {
+          "pattern": "(^|_)(strasse|hausnummer|plz|postleitzahl|wohnort|anschrift|wohnanschrift|adresse|code_postal|direccion|domicilio|codigo_postal|calle|indirizzo|residenza)($|_)",
+          "confidence": 0.85
+        },
+        {
+          "pattern": "^(ort|stadt|ville|ciudad|citta|localidad|comune)$",
+          "confidence": 0.55
+        }
+      ],
+      "exclude": [
+        "(^|_)(adresse|direccion|indirizzo)_(ip|e_?mail|mail|url|web|mac|correo)($|_)",
+        "(^|_)(ip|e_?mail|mail|mac|web)_adresse($|_)"
+      ]
+    },
+    {
+      "id": "eu-demographic",
+      "category": "demographic",
+      "description": "Date and place of birth, sex and citizenship in German, French, Spanish and Italian.",
+      "match": [
+        {
+          "pattern": "(^|_)(geburtsdatum|geburtstag|geburtsort|fecha_(de_)?nacimiento|lugar_(de_)?nacimiento|date_(de_)?naissance|lieu_(de_)?naissance|data_(di_)?nascita|luogo_(di_)?nascita)($|_)",
+          "confidence": 0.95
+        },
+        {
+          "pattern": "(^|_)(geschlecht|staatsangehoerigkeit|staatsangehorigkeit|familienstand|sexe|nationalite|sexo|nacionalidad|estado_civil|sesso|nazionalita|stato_civile)($|_)",
+          "confidence": 0.8
+        }
+      ]
+    },
+    {
+      "id": "eu-government-id",
+      "category": "government_id",
+      "description": "National identifiers named in German, French, Spanish and Italian.",
+      "match": [
+        {
+          "pattern": "(^|_)(steuer_?id|steueridentifikationsnummer|steuernummer|sozialversicherungsnummer|rentenversicherungsnummer|ausweisnummer|personalausweis(nummer)?|reisepass(nummer)?)($|_)",
+          "confidence": 0.95
+        },
+        {
+          "pattern": "(^|_)(numero_(de_)?securite_sociale|numero_secu|carte_identite|numero_passeport|passeport|codice_fiscale|carta_identita|documento_identidad|numero_pasaporte|pasaporte)($|_)",
+          "confidence": 0.9
+        }
+      ]
+    },
+    {
+      "id": "eu-financial",
+      "category": "financial",
+      "description": "Bank account and pay fields in German, French, Spanish and Italian.",
+      "match": [
+        {
+          "pattern": "(^|_)(kontonummer|bankverbindung|numero_(de_)?cuenta|cuenta_bancaria|numero_(de_)?compte|compte_bancaire|conto_corrente|numero_conto)($|_)",
+          "confidence": 0.93
+        },
+        {
+          "pattern": "(^|_)(gehalt|salaire|salario|stipendio)($|_)",
+          "confidence": 0.8
+        }
+      ]
+    },
+    {
+      "id": "eu-credential",
+      "category": "credential",
+      "description": "Passwords named in German, French, Spanish, Italian and Portuguese.",
+      "match": [
+        {
+          "pattern": "(^|_)(passwort|kennwort|contrasena|contrasenia|mot_de_passe|motdepasse|senha)($|_)",
           "confidence": 0.85
         }
       ]

@@ -27,6 +27,25 @@ export const ruleSchema = z
   })
   .strict();
 
+/**
+ * Hints from the table or model a field belongs to. They only move matches that are ambiguous
+ * on their own (`name`, `city`, `age`): `users.name` is a person's name, `products.name` is not.
+ */
+export const entityHintsSchema = z
+  .object({
+    /** Patterns for entities that describe people (`users`, `klienci`). */
+    person: z.array(z.string().min(1)).default([]),
+    /** Patterns for entities that describe things (`products`, `categories`). */
+    nonPerson: z.array(z.string().min(1)).default([]),
+    /** Added to an ambiguous match in a person entity. */
+    personBoost: z.number().min(0).max(1).default(0.2),
+    /** Subtracted from an ambiguous match in a non-person entity. */
+    nonPersonPenalty: z.number().min(0).max(1).default(0.15),
+    /** A match counts as ambiguous when its confidence is below this. */
+    ambiguousBelow: z.number().min(0).max(1).default(0.7),
+  })
+  .strict();
+
 export const rulesFileSchema = z
   .object({
     $schema: z.string().optional(),
@@ -34,6 +53,7 @@ export const rulesFileSchema = z
     description: z.string().optional(),
     ignore: z.array(z.string().min(1)).default([]),
     typeAdjustments: typeAdjustmentsSchema.default({}),
+    entityHints: entityHintsSchema.optional(),
     rules: z.array(ruleSchema),
   })
   .strict();
@@ -51,10 +71,19 @@ export interface CompiledRule {
   typeAdjustments: Partial<Record<CoarseType, number>>;
 }
 
+export interface CompiledEntityHints {
+  person: RegExp[];
+  nonPerson: RegExp[];
+  personBoost: number;
+  nonPersonPenalty: number;
+  ambiguousBelow: number;
+}
+
 export interface RuleSet {
   ignore: RegExp[];
   typeAdjustments: Partial<Record<CoarseType, number>>;
   rules: CompiledRule[];
+  entityHints?: CompiledEntityHints;
 }
 
 export const DEFAULT_RULES_URL = new URL('../rules/default-rules.json', import.meta.url);
@@ -136,11 +165,22 @@ export function compileRuleSet(file: RulesFile, extraRules: readonly unknown[] =
   });
   const byId = new Map(file.rules.map((r) => [r.id, r]));
   for (const extra of extras) byId.set(extra.id, extra);
-  return {
+  const ruleSet: RuleSet = {
     ignore: file.ignore.map((p, i) => compileRegex(p, `ignore[${i}]`)),
     typeAdjustments: file.typeAdjustments,
     rules: [...byId.values()].map(compileRule),
   };
+  const hints = file.entityHints;
+  if (hints) {
+    ruleSet.entityHints = {
+      person: hints.person.map((p, i) => compileRegex(p, `entityHints.person[${i}]`)),
+      nonPerson: hints.nonPerson.map((p, i) => compileRegex(p, `entityHints.nonPerson[${i}]`)),
+      personBoost: hints.personBoost,
+      nonPersonPenalty: hints.nonPersonPenalty,
+      ambiguousBelow: hints.ambiguousBelow,
+    };
+  }
+  return ruleSet;
 }
 
 export { formatZodError };

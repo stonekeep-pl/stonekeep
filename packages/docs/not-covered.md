@@ -17,8 +17,9 @@ compliance, not a replacement for them.
 
 ## Language coverage
 
-Built-in rules match English field names and common Polish, Romanian and Hungarian ones, plus
-national ID names from Czechia, Slovakia, Bulgaria, Croatia, Slovenia and the Baltics. Diacritics
+Built-in rules match English field names and common Polish, Romanian, Hungarian, German, French,
+Spanish and Italian ones, plus national ID names from Czechia, Slovakia, Bulgaria, Croatia, Slovenia
+and the Baltics. Diacritics
 are folded first, so `imię` and `imie` match the same rule. Field names in other languages, and
 abbreviations specific to your team, need [`extraRules`](rules.md#customising). To correct a wrong
 result, use `overrides` in `stonekeep.config.json` or an inline `stonekeep-ignore` comment.
