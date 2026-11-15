@@ -181,7 +181,7 @@ jobs:
 | `strict`           | `false`  | Also fail on stale datamap entries and category changes |
 | `allow-incomplete` | `false`  | Pass even when some schema files could not be read      |
 | `sarif`            | `true`   | Write `stonekeep.sarif` for Code Scanning               |
-| `version`          | `latest` | `@stonekeep/cli` version to run (pin it, e.g. `0.8.0`)  |
+| `version`          | `latest` | `@stonekeep/cli` version to run (pin it, e.g. `0.9.0`)  |
 
 The action runs locally on the runner and reads schema definitions only, never data values.
 

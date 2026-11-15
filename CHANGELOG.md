@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.9.0
 
 ### Detection
 
@@ -29,7 +29,9 @@ languages added below, so part of that gap is new coverage.
 After upgrading, run `stonekeep scan` and review the diff of the data map: fields that are newly
 found fail `check` until they are mapped, and fields that are no longer reported show up as stale.
 
-Fixes for the four open CodeQL alerts.
+### Hardening
+
+Fixes for four CodeQL alerts.
 
 - `normalizeName` and `coarseType` run in linear time. Two regular expressions backtracked
   quadratically on a long run of capitals, underscores or spaces.
